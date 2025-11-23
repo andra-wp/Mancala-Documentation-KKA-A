@@ -1,6 +1,6 @@
-# Mancala AI Benchmark Suite - Complete Documentation
+# Mancala AI Benchmark & Analysis
 
-## 📋 Table of Contents
+## Table of Contents
 1. [Overview](#overview)
 2. [System Architecture](#system-architecture)
 3. [Class Documentation](#class-documentation)
