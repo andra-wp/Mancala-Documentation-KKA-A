@@ -129,96 +129,20 @@ class MancalaBoard:
 
 def evaluate(board, player):
     b = board.board
-    my_store = b[6] if player == 0 else b[13]
+    my_store  = b[6]  if player == 0 else b[13]
     opp_store = b[13] if player == 0 else b[6]
-    my_idx = range(0, 6) if player == 0 else range(7, 13)
-    opp_idx = range(7, 13) if player == 0 else range(0, 6)
-    
-    my_side = sum(b[i] for i in my_idx)
-    opp_side = sum(b[i] for i in opp_idx)
-    total_stones = my_side + opp_side
-    
-    game_phase = 1.0 - (total_stones / 48.0)
-    
-    store_diff = (my_store - opp_store) / 48.0
-    store_weight = 10.0 + game_phase * 15.0
-    
-    if total_stones > 0:
-        side_diff = (my_side - opp_side) / total_stones
-    else:
-        side_diff = 0.0
-    side_weight = 3.0 * (1.0 - game_phase * 0.5)
-    
-    my_moves = len(board.valid_moves(player))
-    opp_moves = len(board.valid_moves(1 - player))
-    mobility_diff = (my_moves - opp_moves) / 6.0
-    mobility_weight = 2.5 * (1.0 - game_phase * 0.7)
-    
-    my_store_pos = 6 if player == 0 else 13
-    opp_store_pos = 13 if player == 0 else 6
-    extra_count = 0
-    
-    for i in my_idx:
-        if b[i] > 0:
-            pos = i
-            stones_left = b[i]
-            while stones_left > 0:
-                pos = (pos + 1) % 14
-                if pos == opp_store_pos:
-                    continue
-                stones_left -= 1
-            if pos == my_store_pos:
-                extra_count += 1
-    
-    extra_score = math.tanh(extra_count / 3.0)
-    extra_weight = 4.0
-    
-    capture_value = 0
-    for i in my_idx:
-        if b[i] > 0:
-            pos = i
-            stones_left = b[i]
-            while stones_left > 0:
-                pos = (pos + 1) % 14
-                if pos == opp_store_pos:
-                    continue
-                stones_left -= 1
-            
-            if pos in my_idx and b[pos] == 0:
-                opp_pit = 12 - pos
-                capture_value += b[opp_pit]
-    
-    capture_score = math.tanh(capture_value / 10.0)
-    capture_weight = 5.0
-    
-    opp_extra_count = 0
-    for j in opp_idx:
-        if b[j] > 0:
-            pos = j
-            stones_left = b[j]
-            my_store_check = 6 if player == 0 else 13
-            while stones_left > 0:
-                pos = (pos + 1) % 14
-                if pos == my_store_check:
-                    continue
-                stones_left -= 1
-            if pos == opp_store_pos:
-                opp_extra_count += 1
-    
-    threat_score = -math.tanh(opp_extra_count / 3.0)
-    threat_weight = 3.5
-    
-    total = (
-        store_weight * store_diff +
-        side_weight * side_diff +
-        mobility_weight * mobility_diff +
-        extra_weight * extra_score +
-        capture_weight * capture_score +
-        threat_weight * threat_score
-    )
-    
-    return math.tanh(total / 12.0)
 
+    my_side  = sum(b[0:6])  if player == 0 else sum(b[7:13])
+    opp_side = sum(b[7:13]) if player == 0 else sum(b[0:6])
+
+    store_diff = my_store - opp_store
+    side_diff  = my_side - opp_side
+    mobility   = len(board.valid_moves(player)) - len(board.valid_moves(1 - player))
+
+    total_stones = my_side + opp_side
+    endgame_factor = 1.0 + (1 - total_stones / 48.0) * 1.4
+
+    return endgame_factor * (1.0 * store_diff + 0.3 * side_diff + 0.2 * mobility)
 
 def alphabeta(board, depth, alpha, beta, current_player, root_player, start_time, time_limit):
     if time.time() - start_time > time_limit:
