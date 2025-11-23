@@ -2080,26 +2080,6 @@ def parallel_minimax(root_moves):
     return max(results, key=lambda x: x[0])
 ```
 
----
-
-## References
-
-### Game Theory
-- **Minimax Algorithm**: Von Neumann & Morgenstern (1944)
-- **Alpha-Beta Pruning**: McCarthy (1956), further developed by Knuth & Moore (1975)
-
-### Mancala Strategy
-- **"Mancala Games"** by Larry Russ
-- **Kalah Solved**: Solved completely by Geoffrey Irving et al. (2000)
-
-### Game AI
-- **"Artificial Intelligence: A Modern Approach"** by Russell & Norvig
-- **"Deep Blue"** - IBM's chess computer
-- **AlphaGo** - DeepMind's Go AI
-
-### Optimization Techniques
-- **"Heuristic Search"** by Pearl (1984)
-- **"Game Tree Search Algorithms"** survey papers
 
 ---
 
