@@ -1,5 +1,5 @@
 # DOKUMENTASI SISTEM PERMAINAN CONGKLAK AI
-## Dengan Implementasi Alpha-Beta Pruning dan Heuristik Game-Phase
+## Dengan Implementasi Alpha-Beta Pruning dan Heuristic Game-Phase
 
 ---
 
@@ -8,7 +8,7 @@
 1. [Pendahuluan](#pendahuluan)
 2. [Arsitektur Sistem](#arsitektur-sistem)
 3. [Dokumentasi Class MancalaBoard](#dokumentasi-class-mancalaboard)
-4. [Fungsi Evaluasi Heuristik](#fungsi-evaluasi-heuristik)
+4. [Fungsi Evaluasi heuristic](#fungsi-evaluasi-heuristic)
 5. [Algoritma Alpha-Beta Pruning](#algoritma-alpha-beta-pruning)
 6. [Iterative Deepening](#iterative-deepening)
 7. [Antarmuka Permainan](#antarmuka-permainan)
@@ -21,7 +21,7 @@
 
 ### 1.1 Latar Belakang
 
-File ini merupakan dokumentasi teknis lengkap untuk sistem permainan Congklak (Mancala) berbasis AI. Sistem ini mengimplementasikan algoritma Alpha-Beta Pruning dengan optimasi move ordering dan fungsi evaluasi heuristik yang advanced.
+File ini merupakan dokumentasi teknis lengkap untuk sistem permainan Congklak (Mancala) berbasis AI. Sistem ini mengimplementasikan algoritma Alpha-Beta Pruning dengan optimasi move ordering dan fungsi evaluasi heuristic yang advanced.
 
 ### 1.2 Tujuan Sistem
 
@@ -60,7 +60,7 @@ Sistem ini dirancang untuk:
 - Time-bounded search dengan iterative deepening
 
 **Evaluation Function:**
-- Heuristik multi-faktor
+- heuristic multi-faktor
 - Adaptasi berdasarkan fase permainan
 - Normalisasi menggunakan fungsi tanh
 
@@ -632,11 +632,11 @@ Ketika salah satu sisi kosong, pemain lain mengumpulkan semua batu yang tersisa 
 
 ---
 
-## 4. FUNGSI EVALUASI HEURISTIK
+## 4. FUNGSI EVALUASI heuristic
 
 ### 4.1 Deskripsi Umum
 
-Fungsi `evaluate()` adalah jantung dari AI decision-making. Fungsi ini menghitung nilai heuristik dari sebuah board state untuk menentukan seberapa menguntungkan posisi tersebut bagi player tertentu.
+Fungsi `evaluate()` adalah jantung dari AI decision-making. Fungsi ini menghitung nilai heuristic dari sebuah board state untuk menentukan seberapa menguntungkan posisi tersebut bagi player tertentu.
 
 ### 4.2 Signature Fungsi
 
@@ -649,7 +649,7 @@ def evaluate(board, player) -> float
 - `player` (int): Player yang perspektifnya digunakan (0 atau 1)
 
 **Return:**
-- float: Nilai heuristik dalam range [-1, 1]
+- float: Nilai heuristic dalam range [-1, 1]
   - Nilai positif: Menguntungkan untuk `player`
   - Nilai negatif: Menguntungkan untuk lawan
   - Nilai 0: Posisi seimbang
@@ -684,7 +684,7 @@ def evaluate(board, player):
 ```
 **Penjelasan:**
 - Range index pit untuk player dan lawan
-- Digunakan untuk iterasi di berbagai komponen heuristik
+- Digunakan untuk iterasi di berbagai komponen heuristic
 
 ```python
     my_side = sum(b[i] for i in my_idx)
@@ -723,7 +723,7 @@ Fase permainan mempengaruhi strategi:
 
 ---
 
-**BAGIAN 3: Komponen Heuristik 1 - Store Difference**
+**BAGIAN 3: Komponen heuristic 1 - Store Difference**
 
 ```python
     store_diff = (my_store - opp_store) / 48.0
@@ -751,7 +751,7 @@ contribution = store_weight * store_diff
 
 ---
 
-**BAGIAN 4: Komponen Heuristik 2 - Side Stones Difference**
+**BAGIAN 4: Komponen heuristic 2 - Side Stones Difference**
 
 ```python
     if total_stones > 0:
@@ -780,7 +780,7 @@ contribution = side_weight * side_diff
 
 ---
 
-**BAGIAN 5: Komponen Heuristik 3 - Mobility**
+**BAGIAN 5: Komponen heuristic 3 - Mobility**
 
 ```python
     my_moves = len(board.valid_moves(player))
@@ -814,7 +814,7 @@ contribution = mobility_weight * mobility_diff
 
 ---
 
-**BAGIAN 6: Komponen Heuristik 4 - Extra Turn Potential**
+**BAGIAN 6: Komponen heuristic 4 - Extra Turn Potential**
 
 ```python
     my_store_pos = 6 if player == 0 else 13
@@ -879,7 +879,7 @@ Extra turn sangat valuable karena:
 
 ---
 
-**BAGIAN 7: Komponen Heuristik 5 - Capture Potential**
+**BAGIAN 7: Komponen heuristic 5 - Capture Potential**
 
 ```python
     capture_value = 0
@@ -932,7 +932,7 @@ contribution = capture_weight * capture_score
 
 ---
 
-**BAGIAN 8: Komponen Heuristik 6 - Opponent Threat Assessment**
+**BAGIAN 8: Komponen heuristic 6 - Opponent Threat Assessment**
 
 ```python
     opp_extra_count = 0
@@ -1000,7 +1000,7 @@ Defensive consideration penting untuk:
     )
 ```
 **Penjelasan:**
-- Weighted sum dari semua komponen heuristik
+- Weighted sum dari semua komponen heuristic
 - Setiap komponen sudah dinormalisasi
 - Total dapat berada di luar range [-1, 1]
 
@@ -1023,7 +1023,7 @@ tanh(x):
 
 ---
 
-### 4.4 Ringkasan Komponen Heuristik
+### 4.4 Ringkasan Komponen heuristic
 
 | Komponen | Weight Range | Prioritas | Fase Optimal |
 |----------|--------------|-----------|--------------|
@@ -1092,7 +1092,7 @@ Time management krusial untuk:
 ```
 **Penjelasan:**
 - Base case: depth limit tercapai atau game over
-- Return heuristik evaluation
+- Return heuristic evaluation
 - Tidak ada move karena ini leaf node
 
 ```python
