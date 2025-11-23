@@ -8,7 +8,7 @@
 1. [Pendahuluan](#pendahuluan)
 2. [Arsitektur Sistem](#arsitektur-sistem)
 3. [Dokumentasi Class MancalaBoard](#dokumentasi-class-mancalaboard)
-4. [Fungsi Evaluasi heuristic](#fungsi-evaluasi-heuristic)
+4. [Fungsi Evaluasi Heuristic](#fungsi-evaluasi-heuristic)
 5. [Algoritma Alpha-Beta Pruning](#algoritma-alpha-beta-pruning)
 6. [Iterative Deepening](#iterative-deepening)
 7. [Antarmuka Permainan](#antarmuka-permainan)
@@ -638,401 +638,226 @@ Ketika salah satu sisi kosong, pemain lain mengumpulkan semua batu yang tersisa 
 
 Fungsi `evaluate()` adalah jantung dari AI decision-making. Fungsi ini menghitung nilai heuristic dari sebuah board state untuk menentukan seberapa menguntungkan posisi tersebut bagi player tertentu.
 
-### 4.2 Signature Fungsi
+### 4.2 Deklarasi
 
 ```python
 def evaluate(board, player) -> float
 ```
 
-**Parameter:**
-- `board` (MancalaBoard): State permainan yang akan dievaluasi
-- `player` (int): Player yang perspektifnya digunakan (0 atau 1)
+### 4.3 Parameter
 
-**Return:**
-- float: Nilai heuristic dalam range [-1, 1]
+**Input:**
+- `board` (MancalaBoard): Object yang merepresentasikan state permainan
+  - Memiliki attribute `board`: List[int] dengan 14 elemen
+  - Index 0-5: Pit player 0
+  - Index 6: Store player 0
+  - Index 7-12: Pit player 1
+  - Index 13: Store player 1
+
+- `player` (int): Pemain yang perspektifnya digunakan untuk evaluasi
+  - `0`: Player 0 (human/first player)
+  - `1`: Player 1 (AI/second player)
+
+**Output:**
+- `float`: Nilai evaluasi heuristik
+  - Range: Tidak bounded secara explicit (tapi praktis dalam [-100, 100])
   - Nilai positif: Menguntungkan untuk `player`
   - Nilai negatif: Menguntungkan untuk lawan
-  - Nilai 0: Posisi seimbang
+  - Magnitude: Menunjukkan seberapa besar keuntungan
+
+### 4.4 Contoh Pemanggilan
+
+```python
+game = MancalaBoard()
+# Board: [4,4,4,4,4,4,0,4,4,4,4,4,4,0]
+
+score = evaluate(game, 0)
+# score = 0.0 (posisi awal seimbang)
+
+# Setelah beberapa moves
+game.board = [2,3,0,5,1,0,15,3,2,1,4,0,2,8]
+score = evaluate(game, 0)
+# score = 10.5 (player 0 unggul)
+```
 
 ---
 
-### 4.3 Implementasi Detail
 
-**BAGIAN 1: Inisialisasi dan Ekstraksi Data**
+### 4.5 Formula Matematis
+
+**Formula Utama:**
+```
+Evaluation = endgame_factor × (w₁×store_diff + w₂×side_diff + w₃×mobility)
+```
+
+Dimana:
+- `endgame_factor = 1.0 + (1 - total_stones/48) × 1.4`
+- `w₁ = 1.0` (store difference weight)
+- `w₂ = 0.3` (side difference weight)
+- `w₃ = 0.2` (mobility weight)
+
+---
+
+
+### 4.6 Kode Lengkap dengan Anotasi
 
 ```python
 def evaluate(board, player):
-    b = board.board
-```
-**Penjelasan:**
-- Alias untuk akses cepat ke board list
-- Mengurangi overhead akses attribute
-
-```python
-    my_store = b[6] if player == 0 else b[13]
+    # BAGIAN 1: EKSTRAKSI DATA DASAR
+    b = board.board  # Alias untuk akses cepat
+    
+    # Store values (goal pits)
+    my_store  = b[6]  if player == 0 else b[13]
     opp_store = b[13] if player == 0 else b[6]
-```
-**Penjelasan:**
-- Ekstrak nilai store untuk player dan lawan
-- Conditional expression untuk pemilihan index yang tepat
-- `my_store`: Score player yang sedang dievaluasi
-- `opp_store`: Score lawan
 
-```python
-    my_idx = range(0, 6) if player == 0 else range(7, 13)
-    opp_idx = range(7, 13) if player == 0 else range(0, 6)
-```
-**Penjelasan:**
-- Range index pit untuk player dan lawan
-- Digunakan untuk iterasi di berbagai komponen heuristic
+    # Stones on board (non-store pits)
+    my_side  = sum(b[0:6])  if player == 0 else sum(b[7:13])
+    opp_side = sum(b[7:13]) if player == 0 else sum(b[0:6])
 
-```python
-    my_side = sum(b[i] for i in my_idx)
-    opp_side = sum(b[i] for i in opp_idx)
-```
-**Penjelasan:**
-- Hitung total batu di sisi player
-- Hitung total batu di sisi lawan
-- Generator expression untuk sum yang efisien
+    # BAGIAN 2: PERHITUNGAN KOMPONEN HEURISTIK
+    store_diff = my_store - opp_store
+    side_diff  = my_side - opp_side
+    mobility   = len(board.valid_moves(player)) - len(board.valid_moves(1 - player))
 
-```python
+    # BAGIAN 3: GAME PHASE DETECTION
     total_stones = my_side + opp_side
+    endgame_factor = 1.0 + (1 - total_stones / 48.0) * 1.4
+
+    # BAGIAN 4: WEIGHTED AGGREGATION
+    return endgame_factor * (1.0 * store_diff + 0.3 * side_diff + 0.2 * mobility)
 ```
-**Penjelasan:**
-- Total batu yang masih dalam permainan (di luar store)
-- Digunakan untuk menentukan fase permainan
 
----
+### 4.7 Penjelasan Setiap Bagian
 
-**BAGIAN 2: Penentuan Fase Permainan**
+#### BAGIAN 1: Ekstraksi Data Dasar
+
+**Baris 1-2: Alias dan Setup**
+```python
+b = board.board
+```
+- Membuat alias `b` untuk mengurangi overhead akses attribute
+- Meningkatkan readability kode
+- Negligible performance improvement tapi best practice
+
+**Baris 4-5: Store Values**
+```python
+my_store  = b[6]  if player == 0 else b[13]
+opp_store = b[13] if player == 0 else b[6]
+```
+- Conditional expression untuk memilih store yang tepat
+- `my_store`: Jumlah batu dalam store pemain yang dievaluasi
+- `opp_store`: Jumlah batu dalam store lawan
+- Store adalah tujuan akhir - maksimum score
+
+**Baris 7-8: Side Stones**
+```python
+my_side  = sum(b[0:6])  if player == 0 else sum(b[7:13])
+opp_side = sum(b[7:13]) if player == 0 else sum(b[0:6])
+```
+- `sum(b[0:6])`: Total batu di 6 pit player 0
+- `sum(b[7:13])`: Total batu di 6 pit player 1
+- Side stones = batu yang masih bisa dimainkan
+- Tidak termasuk stones yang sudah di store
+
+#### BAGIAN 2: Perhitungan Komponen Heuristik
+
+**Komponen 1: Store Difference**
+```python
+store_diff = my_store - opp_store
+```
+- Mengukur lead/deficit dalam score
+- Range: [-48, 48] teoritis
+- Praktis: [-30, 30] dalam mid-game
+- Contoh:
+  - `my_store = 20, opp_store = 15` → `store_diff = 5` (leading)
+  - `my_store = 10, opp_store = 18` → `store_diff = -8` (trailing)
+
+**Komponen 2: Side Difference**
+```python
+side_diff = my_side - opp_side
+```
+- Mengukur kontrol material di board
+- Lebih banyak stones = lebih banyak options
+- Range: [-48, 48] teoritis
+- Praktis: [-20, 20] dalam mid-game
+- Contoh:
+  - `my_side = 18, opp_side = 12` → `side_diff = 6` (resource advantage)
+  - `my_side = 8, opp_side = 15` → `side_diff = -7` (resource disadvantage)
+
+**Komponen 3: Mobility**
+```python
+mobility = len(board.valid_moves(player)) - len(board.valid_moves(1 - player))
+```
+- Mengukur fleksibilitas dalam memilih moves
+- `board.valid_moves(player)`: Returns list of legal moves
+- `len(...)`: Count jumlah options
+- Range: [-6, 6]
+- Contoh:
+  - Player punya 5 moves, opponent punya 2 → `mobility = 3` (tactical advantage)
+  - Player punya 1 move, opponent punya 4 → `mobility = -3` (limited options)
+
+#### BAGIAN 3: Game Phase Detection
 
 ```python
-    game_phase = 1.0 - (total_stones / 48.0)
+total_stones = my_side + opp_side
+endgame_factor = 1.0 + (1 - total_stones / 48.0) * 1.4
 ```
-**Penjelasan:**
-- Normalisasi fase permainan ke range [0, 1]
-- Initial state: 48 batu di pit → game_phase = 0 (early game)
-- End game: 0 batu di pit → game_phase = 1 (late game)
-- Formula: `phase = 1 - (current_stones / initial_stones)`
 
-**Rasional:**
-Fase permainan mempengaruhi strategi:
-- Early game: Fokus pada mobilitas dan kontrol board
-- Mid game: Balance antara offense dan defense
-- Late game: Fokus pada maksimasi score difference
+**Total Stones:**
+- Sum dari semua batu yang masih di pit (belum di store)
+- Initial game: `total_stones = 48`
+- End game: `total_stones → 0`
 
----
+**Endgame Factor Calculation:**
 
-**BAGIAN 3: Komponen heuristic 1 - Store Difference**
+Formula breakdown:
+```
+endgame_factor = 1.0 + (1 - total_stones/48) × 1.4
+               = 1.0 + progression × 1.4
+```
+
+Dimana `progression = 1 - total_stones/48`:
+- Start game: `progression = 1 - 48/48 = 0` → `factor = 1.0`
+- Mid game: `progression = 1 - 24/48 = 0.5` → `factor = 1.7`
+- End game: `progression = 1 - 0/48 = 1` → `factor = 2.4`
+
+**Interpretasi:**
+- Early game: Factor minimal (1.0) - semua komponen equally weighted
+- Late game: Factor maksimal (2.4) - amplify semua differences
+- Rasional: Store difference lebih critical di endgame
+
+#### BAGIAN 4: Weighted Aggregation
 
 ```python
-    store_diff = (my_store - opp_store) / 48.0
-```
-**Penjelasan:**
-- Perbedaan score dinormalisasi
-- Dibagi 48 karena total batu dalam permainan = 48
-- Range: [-1, 1]
-- Positive: Player leading
-- Negative: Player trailing
-
-```python
-    store_weight = 10.0 + game_phase * 15.0
-```
-**Penjelasan:**
-- Weight dinamis berdasarkan fase permainan
-- Early game: weight = 10.0
-- Late game: weight = 25.0 (10.0 + 15.0)
-- Rasional: Score difference lebih penting di late game
-
-**Kontribusi:**
-```python
-contribution = store_weight * store_diff
+return endgame_factor * (1.0 * store_diff + 0.3 * side_diff + 0.2 * mobility)
 ```
 
----
+**Weight Hierarchy:**
+1. **Store Difference (1.0)**: Highest priority
+   - Ini adalah tujuan utama permainan
+   - Direct measurement of winning/losing
 
-**BAGIAN 4: Komponen heuristic 2 - Side Stones Difference**
+2. **Side Difference (0.3)**: Medium priority
+   - Material advantage untuk future moves
+   - Indirect path to victory
 
-```python
-    if total_stones > 0:
-        side_diff = (my_side - opp_side) / total_stones
-    else:
-        side_diff = 0.0
+3. **Mobility (0.2)**: Lowest priority
+   - Tactical flexibility
+   - Tie-breaker untuk equal positions
+
+**Contoh Perhitungan:**
 ```
-**Penjelasan:**
-- Perbedaan jumlah batu di sisi board
-- Normalisasi relatif terhadap total batu tersisa
-- Guard clause untuk menghindari division by zero
+Given:
+- store_diff = 5
+- side_diff = 3
+- mobility = 2
+- endgame_factor = 1.5
 
-```python
-    side_weight = 3.0 * (1.0 - game_phase * 0.5)
+Score = 1.5 × (1.0×5 + 0.3×3 + 0.2×2)
+      = 1.5 × (5 + 0.9 + 0.4)
+      = 1.5 × 6.3
+      = 9.45
 ```
-**Penjelasan:**
-- Weight berkurang seiring permainan berlanjut
-- Early game: weight = 3.0
-- Late game: weight = 1.5 (3.0 * 0.5)
-- Rasional: Kontrol board lebih penting di early game
-
-**Kontribusi:**
-```python
-contribution = side_weight * side_diff
-```
-
----
-
-**BAGIAN 5: Komponen heuristic 3 - Mobility**
-
-```python
-    my_moves = len(board.valid_moves(player))
-    opp_moves = len(board.valid_moves(1 - player))
-```
-**Penjelasan:**
-- Hitung jumlah legal moves untuk setiap player
-- Lebih banyak moves = lebih banyak options
-
-```python
-    mobility_diff = (my_moves - opp_moves) / 6.0
-```
-**Penjelasan:**
-- Perbedaan mobilitas dinormalisasi
-- Dibagi 6 karena maksimal moves per player = 6
-- Range: [-1, 1]
-
-```python
-    mobility_weight = 2.5 * (1.0 - game_phase * 0.7)
-```
-**Penjelasan:**
-- Weight berkurang signifikan di late game
-- Early game: weight = 2.5
-- Late game: weight = 0.75 (2.5 * 0.3)
-- Rasional: Mobilitas kurang relevan ketika batu sudah sedikit
-
-**Kontribusi:**
-```python
-contribution = mobility_weight * mobility_diff
-```
-
----
-
-**BAGIAN 6: Komponen heuristic 4 - Extra Turn Potential**
-
-```python
-    my_store_pos = 6 if player == 0 else 13
-    opp_store_pos = 13 if player == 0 else 6
-    extra_count = 0
-```
-**Penjelasan:**
-- Identifikasi store positions
-- Initialize counter untuk potential extra turns
-
-```python
-    for i in my_idx:
-        if b[i] > 0:
-            pos = i
-            stones_left = b[i]
-```
-**Penjelasan:**
-- Iterasi setiap pit player
-- Hanya proses pit yang memiliki batu
-
-```python
-            while stones_left > 0:
-                pos = (pos + 1) % 14
-                if pos == opp_store_pos:
-                    continue
-                stones_left -= 1
-```
-**Penjelasan:**
-- Simulasi distribusi batu dari pit ini
-- Skip store lawan dalam perhitungan
-- Track posisi akhir batu terakhir
-
-```python
-            if pos == my_store_pos:
-                extra_count += 1
-```
-**Penjelasan:**
-- Jika batu terakhir landed di store sendiri
-- Increment counter extra turn potential
-- Ini adalah move yang memberikan extra turn
-
-```python
-    extra_score = math.tanh(extra_count / 3.0)
-    extra_weight = 4.0
-```
-**Penjelasan:**
-- Normalisasi menggunakan tanh (hyperbolic tangent)
-- Dibagi 3.0 untuk scaling yang smooth
-- `tanh(x)` menghasilkan range [-1, 1]
-- Weight konstan 4.0 karena extra turn valuable sepanjang game
-
-**Kontribusi:**
-```python
-contribution = extra_weight * extra_score
-```
-
-**Rasional:**
-Extra turn sangat valuable karena:
-- Memberikan momentum
-- Memungkinkan combo moves
-- Mengurangi kesempatan lawan
-
----
-
-**BAGIAN 7: Komponen heuristic 5 - Capture Potential**
-
-```python
-    capture_value = 0
-    
-    for i in my_idx:
-        if b[i] > 0:
-            pos = i
-            stones_left = b[i]
-```
-**Penjelasan:**
-- Initialize counter untuk potential capture
-- Iterasi setiap pit player yang memiliki batu
-
-```python
-            while stones_left > 0:
-                pos = (pos + 1) % 14
-                if pos == opp_store_pos:
-                    continue
-                stones_left -= 1
-```
-**Penjelasan:**
-- Simulasi distribusi batu
-- Tentukan landing position
-
-```python
-            if pos in my_idx and b[pos] == 0:
-                opp_pit = 12 - pos
-                capture_value += b[opp_pit]
-```
-**Penjelasan:**
-- Cek apakah landing position adalah pit kosong milik player
-- `pos in my_idx`: Landed di sisi player
-- `b[pos] == 0`: Pit kosong sebelum move
-- `opp_pit = 12 - pos`: Hitung pit lawan yang berseberangan
-- Tambahkan jumlah batu di pit lawan ke capture value
-
-```python
-    capture_score = math.tanh(capture_value / 10.0)
-    capture_weight = 5.0
-```
-**Penjelasan:**
-- Normalisasi capture potential
-- Dibagi 10.0 untuk scaling (capture 10 batu = tanh(1) ≈ 0.76)
-- Weight 5.0: Capture sangat valuable
-
-**Kontribusi:**
-```python
-contribution = capture_weight * capture_score
-```
-
----
-
-**BAGIAN 8: Komponen heuristic 6 - Opponent Threat Assessment**
-
-```python
-    opp_extra_count = 0
-    
-    for j in opp_idx:
-        if b[j] > 0:
-            pos = j
-            stones_left = b[j]
-            my_store_check = 6 if player == 0 else 13
-```
-**Penjelasan:**
-- Hitung potential extra turns lawan
-- `my_store_check`: Store player (untuk skip saat simulasi)
-
-```python
-            while stones_left > 0:
-                pos = (pos + 1) % 14
-                if pos == my_store_check:
-                    continue
-                stones_left -= 1
-```
-**Penjelasan:**
-- Simulasi distribusi batu lawan
-- Skip store player
-
-```python
-            if pos == opp_store_pos:
-                opp_extra_count += 1
-```
-**Penjelasan:**
-- Hitung berapa moves lawan yang memberikan extra turn
-
-```python
-    threat_score = -math.tanh(opp_extra_count / 3.0)
-    threat_weight = 3.5
-```
-**Penjelasan:**
-- Negative score karena ini threat (bad for player)
-- Normalisasi dengan tanh
-- Weight 3.5: Threat perlu diantisipasi tapi tidak sekritis capture
-
-**Kontribusi:**
-```python
-contribution = threat_weight * threat_score
-```
-
-**Rasional:**
-Defensive consideration penting untuk:
-- Mencegah lawan mendapat momentum
-- Blocking opponent's extra turns
-- Strategic positioning
-
----
-
-**BAGIAN 9: Agregasi dan Normalisasi Final**
-
-```python
-    total = (
-        store_weight * store_diff +
-        side_weight * side_diff +
-        mobility_weight * mobility_diff +
-        extra_weight * extra_score +
-        capture_weight * capture_score +
-        threat_weight * threat_score
-    )
-```
-**Penjelasan:**
-- Weighted sum dari semua komponen heuristic
-- Setiap komponen sudah dinormalisasi
-- Total dapat berada di luar range [-1, 1]
-
-```python
-    return math.tanh(total / 12.0)
-```
-**Penjelasan:**
-- Final normalisasi menggunakan tanh
-- Dibagi 12.0 untuk scaling ke input range yang reasonable
-- Output dijamin dalam range [-1, 1]
-- Nilai mendekati -1 atau 1 menunjukkan keuntungan yang sangat besar
-
-**Karakteristik tanh:**
-```
-tanh(x):
-  x → -∞  :  output → -1
-  x = 0   :  output = 0
-  x → +∞  :  output → +1
-```
-
----
-
-### 4.4 Ringkasan Komponen heuristic
-
-| Komponen | Weight Range | Prioritas | Fase Optimal |
-|----------|--------------|-----------|--------------|
-| Store Difference | 10.0 - 25.0 | Tertinggi | Late Game |
-| Capture Potential | 5.0 | Sangat Tinggi | Semua Fase |
-| Extra Turn | 4.0 | Tinggi | Semua Fase |
-| Opponent Threat | 3.5 | Menengah-Tinggi | Semua Fase |
-| Side Stones | 1.5 - 3.0 | Menengah | Early Game |
-| Mobility | 0.75 - 2.5 | Rendah-Menengah | Early Game |
 
 ---
 
