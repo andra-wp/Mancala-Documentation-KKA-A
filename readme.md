@@ -42,8 +42,8 @@ Program ini adalah **comprehensive benchmark suite** untuk membandingkan perform
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    MAIN EXECUTION                            │
-│                      main()                                  │
+│                    MAIN EXECUTION                           │
+│                      main()                                 │
 └──────────────┬──────────────────────────────────────────────┘
                │
                ├─► run_random_depth_benchmark()
