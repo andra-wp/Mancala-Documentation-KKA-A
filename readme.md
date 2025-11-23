@@ -1,5 +1,5 @@
 # DOKUMENTASI SISTEM PERMAINAN CONGKLAK AI
-## Dengan Implementasi Alpha-Beta Pruning dan Heuristic Game-Phase
+## Dengan Implementasi Alpha-Beta Pruning
 
 ---
 
